@@ -1,437 +1,717 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mountain Quest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: transparent; font-family: var(--font-sans, sans-serif); }
-  #game-container { width: 100%; min-height: 600px; position: relative; overflow: hidden; border-radius: var(--border-radius-lg); background: #b8e4f0; }
-  #three-canvas { width: 100%; height: 420px; display: block; }
-  #ui-panel { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.97); border-top: 0.5px solid #ccc; padding: 20px 24px; }
-  #screen-start, #screen-rules, #screen-question, #screen-result, #screen-end { display: none; }
-  #screen-start.active, #screen-rules.active, #screen-question.active, #screen-result.active, #screen-end.active { display: block; }
-  h1 { font-size: 22px; font-weight: 500; color: #0d3b4f; margin-bottom: 6px; }
-  h2 { font-size: 18px; font-weight: 500; color: #0d3b4f; margin-bottom: 10px; }
-  p { font-size: 14px; color: #555; margin-bottom: 8px; }
-  .btn { display: inline-block; padding: 10px 28px; border-radius: 24px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; letter-spacing: 1px; transition: opacity 0.15s, transform 0.1s; }
-  .btn:active { transform: scale(0.97); }
-  .btn-primary { background: #1a4f66; color: #fff; }
-  .btn-orange { background: #e06020; color: #fff; }
-  .btn-muted { background: #e8e4dd; color: #888; }
-  .btn:hover { opacity: 0.88; }
-  .options label { display: flex; align-items: center; gap: 10px; font-size: 15px; color: #1a3a4a; padding: 8px 0; cursor: pointer; }
-  .options label input { accent-color: #1a4f66; width: 18px; height: 18px; cursor: pointer; }
-  .btn-row { display: flex; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
-  #progress-bar-wrap { height: 6px; background: #dde; border-radius: 3px; margin-bottom: 10px; }
-  #progress-bar { height: 100%; background: #1a9b6e; border-radius: 3px; transition: width 0.4s; }
-  .feedback-msg { font-size: 14px; font-weight: 500; padding: 8px 14px; border-radius: 8px; margin-bottom: 10px; display: inline-block; }
-  .feedback-correct { background: #eaf3de; color: #3b6d11; }
-  .feedback-wrong { background: #fcebeb; color: #a32d2d; }
-  .rules-list { list-style: none; padding: 0; margin: 0 0 14px; }
-  .rules-list li { font-size: 14px; color: #1a3a4a; padding: 4px 0 4px 18px; position: relative; }
-  .rules-list li::before { content: '›'; position: absolute; left: 0; color: #e06020; font-weight: 700; }
-  #hud { position: absolute; top: 12px; left: 16px; background: rgba(255,255,255,0.85); border-radius: 10px; padding: 6px 14px; font-size: 13px; color: #1a3a4a; font-weight: 500; display: none; }
-  #snowflakes { position: absolute; top: 0; left: 0; width: 100%; height: 420px; pointer-events: none; overflow: hidden; }
-  .sf { position: absolute; width: 4px; height: 4px; background: #fff; border-radius: 50%; opacity: 0.7; animation: fall linear infinite; }
-  @keyframes fall { from { transform: translateY(-10px); } to { transform: translateY(430px); } }
-  #climber-sprite { position: absolute; width: 40px; height: 40px; pointer-events: none; transition: left 0.8s ease, top 0.8s ease; }
-  #flag-summit { position: absolute; font-size: 24px; display: none; animation: wave 1s ease-in-out infinite alternate; }
-  @keyframes wave { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
-  .q-label { font-size: 12px; color: #888; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --teal-dark:#1a5c6b;--teal-mid:#2e8fa3;--teal-light:#5ec5d5;--teal-pale:#a8dfe8;
+    --ice:#c8edf2;--sky-top:#6dbdcc;--sky-bot:#a8dfe8;
+    --cream:#f0ebe0;--dark-navy:#0d3340;
+    --orange:#e8622a;--orange-light:#f0854a;
+  }
+  html,body{width:100%;height:100%;overflow:hidden;font-family:'Nunito Sans',sans-serif;}
+
+  /* ── SKY BACKGROUND ── */
+  #app{position:relative;width:100vw;height:100vh;background:linear-gradient(180deg,#6dbdcc 0%,#a8dfe8 55%,#c8edf2 100%);overflow:hidden;}
+
+  /* ── SNOW CANVAS ── */
+  #snow-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:10;}
+
+  /* ── PARALLAX MOUNTAIN LAYERS ── */
+  .mt-layer{position:absolute;bottom:0;width:100%;pointer-events:none;}
+  #layer-far{z-index:1;bottom:-10px;}
+  #layer-mid{z-index:2;bottom:-5px;}
+  #layer-near{z-index:3;bottom:0;}
+  #layer-ground{z-index:4;bottom:0;}
+
+  /* ── PATH & CLIMBER CANVAS ── */
+  #game-canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+
+  /* ── UI LAYER ── */
+  #ui{position:absolute;inset:0;z-index:20;pointer-events:none;}
+
+  /* ── SCREENS ── */
+  .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;pointer-events:all;}
+
+  /* START */
+  #start-screen{background:transparent;}
+  #start-bottom{background:var(--cream);width:100%;padding:32px 40px 36px;text-align:center;}
+  #start-bottom h1{font-family:'Nunito',sans-serif;font-size:clamp(26px,4vw,40px);font-weight:900;color:var(--dark-navy);margin-bottom:8px;}
+  #start-bottom p{font-family:'Nunito Sans',sans-serif;font-style:italic;color:#4a7a85;font-size:15px;margin-bottom:22px;}
+  .pill-btn{font-family:'Nunito',sans-serif;font-size:15px;font-weight:800;letter-spacing:1.5px;color:#fff;background:var(--dark-navy);border:none;border-radius:40px;padding:14px 44px;cursor:pointer;transition:transform .15s,background .15s;}
+  .pill-btn:hover{background:#0a2530;transform:scale(1.04);}
+  .pill-btn.orange{background:var(--orange);}
+  .pill-btn.orange:hover{background:var(--orange-light);}
+
+  /* RULES */
+  #rules-screen{align-items:flex-start;justify-content:flex-start;padding:36px 40px;background:transparent;}
+  #rules-screen h2{font-family:'Nunito',sans-serif;font-size:clamp(28px,4vw,42px);font-weight:900;color:var(--dark-navy);margin-bottom:22px;text-shadow:0 1px 6px rgba(255,255,255,0.8);}
+  #rules-card{background:rgba(255,255,255,0.55);backdrop-filter:blur(6px);border-radius:16px;padding:28px 32px;max-width:560px;}
+  .rule-item{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;}
+  .rule-arrow{color:var(--dark-navy);font-size:18px;font-weight:900;margin-top:2px;flex-shrink:0;}
+  .rule-text{font-size:clamp(14px,2vw,18px);color:var(--dark-navy);line-height:1.5;font-weight:600;}
+  #rules-goal{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:rgba(13,51,64,0.88);color:#fff;font-size:13px;font-weight:600;padding:9px 22px;border-radius:4px;white-space:nowrap;}
+  #rules-btn-wrap{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);}
+
+  /* QUIZ */
+  #quiz-screen{align-items:flex-start;justify-content:flex-start;background:transparent;padding:20px 28px 20px;}
+  #quiz-card{background:rgba(255,255,255,0.52);backdrop-filter:blur(8px);border-radius:18px;padding:24px 28px;max-width:580px;width:100%;max-height:calc(100vh - 40px);overflow-y:auto;}
+  #quiz-screen.hidden{display:none;}
+  #q-label{font-family:'Nunito',sans-serif;font-size:clamp(24px,3.5vw,36px);font-weight:900;color:var(--dark-navy);margin-bottom:10px;}
+  #q-text{font-size:clamp(14px,2vw,19px);font-weight:700;color:var(--dark-navy);margin-bottom:6px;line-height:1.4;max-width:600px;}
+  #q-hint{font-style:italic;font-size:13px;color:#4a7a85;margin-bottom:18px;}
+  .opt-row{display:flex;align-items:center;gap:14px;margin-bottom:13px;cursor:pointer;padding:3px 0;}
+  .opt-radio{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--dark-navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .15s;}
+  .opt-radio.selected{background:var(--dark-navy);}
+  .opt-radio.selected::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;}
+  .opt-radio.correct-radio{border-color:#2a7a3a;background:#2a7a3a;}
+  .opt-radio.correct-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;}
+  .opt-radio.wrong-radio{border-color:#b92a2a;background:#b92a2a;}
+  .opt-radio.wrong-radio::after{content:'';width:8px;height:8px;border-radius:50%;background:#fff;}
+  .opt-label{font-size:clamp(14px,1.8vw,18px);font-weight:600;color:var(--dark-navy);}
+  #btn-row{display:flex;gap:14px;margin-top:6px;}
+  .action-btn{font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;letter-spacing:1.5px;border-radius:40px;padding:12px 32px;border:none;cursor:pointer;transition:opacity .2s,transform .15s;}
+  .action-btn.submit{background:var(--orange);color:#fff;}
+  .action-btn.submit:hover{background:var(--orange-light);transform:scale(1.03);}
+  .action-btn.submit:disabled{background:#ccc;cursor:default;transform:none;}
+  .action-btn.cont{background:var(--cream);color:#888;border:1px solid #ccc;}
+  .action-btn.cont.active{color:var(--dark-navy);border-color:var(--dark-navy);}
+  .action-btn.cont.active:hover{background:#e0dbd0;transform:scale(1.03);}
+
+  /* HUD */
+  #hud{position:absolute;top:14px;right:16px;background:rgba(13,51,64,0.55);border-radius:10px;padding:8px 16px;pointer-events:none;}
+  #hud-text{font-family:'Nunito',sans-serif;font-size:13px;font-weight:800;color:#fff;text-align:right;}
+  #prog-bar{width:130px;height:7px;background:rgba(255,255,255,0.25);border-radius:4px;margin-top:5px;overflow:hidden;}
+  #prog-fill{height:100%;background:linear-gradient(90deg,#4ade80,#22d3ee);border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1);width:0%;}
+
+  /* END */
+  #end-screen{background:transparent;}
+  #end-top{position:absolute;top:0;left:0;width:100%;height:60%;pointer-events:none;}
+  #end-bottom{background:var(--cream);width:100%;padding:32px 40px 36px;text-align:center;position:relative;z-index:2;}
+  #end-bottom h1{font-family:'Nunito',sans-serif;font-size:clamp(22px,3.5vw,36px);font-weight:900;color:var(--dark-navy);margin-bottom:8px;line-height:1.2;}
+  #end-bottom p{font-style:italic;color:#4a7a85;font-size:15px;margin-bottom:24px;}
+
+  /* FEEDBACK TOAST */
+  #toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(13,51,64,0.92);color:#fff;font-family:'Nunito',sans-serif;font-size:18px;font-weight:800;padding:14px 32px;border-radius:12px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:30;text-align:center;min-width:200px;}
+  #toast.show{opacity:1;}
+  #toast.good{border-left:5px solid #4ade80;}
+  #toast.bad{border-left:5px solid #f87171;}
+
+  .hidden{display:none!important;}
 </style>
+</head>
+<body>
+<div id="app">
 
-<div id="game-container">
-  <div id="snowflakes"></div>
-  <canvas id="three-canvas"></canvas>
-  <div id="hud">Q <span id="hud-q">0</span>/10 &nbsp;|&nbsp; ❤️ <span id="hud-lives">2</span></div>
-  <div id="flag-summit">🚩</div>
+  <!-- PARALLAX MOUNTAIN LAYERS (SVG) -->
+  <svg id="layer-far" class="mt-layer" viewBox="0 0 1440 380" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="0,380 0,260 120,140 240,200 360,80 480,160 600,60 720,150 840,50 960,140 1080,70 1200,160 1320,100 1440,180 1440,380" fill="#2e8fa3" opacity="0.55"/>
+    <polygon points="0,380 0,290 180,180 300,230 420,130 560,200 680,100 800,190 920,110 1050,200 1180,120 1300,200 1440,150 1440,380" fill="#3da3b8" opacity="0.6"/>
+  </svg>
 
-  <div id="ui-panel">
-    <div id="screen-start" class="active">
-      <h1>Welcome to the Mountain Quest</h1>
-      <p style="font-style:italic; color:#888;">Select "START" to begin.</p>
-      <div class="btn-row"><button class="btn btn-primary" onclick="showRules()">START</button></div>
+  <svg id="layer-mid" class="mt-layer" viewBox="0 0 1440 420" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+    <!-- mid mountains -->
+    <polygon points="0,420 0,310 100,220 200,270 340,130 460,210 580,80 700,170 820,90 940,200 1060,110 1180,210 1300,130 1440,200 1440,420" fill="#2a7d92"/>
+    <!-- snow caps mid -->
+    <polygon points="580,80 540,130 580,115 620,130 660,115 700,170 640,160 580,80" fill="#c8edf2" opacity="0.9"/>
+    <polygon points="340,130 310,160 340,148 370,160 400,148 460,210 400,200 340,130" fill="#c8edf2" opacity="0.85"/>
+    <polygon points="820,90 795,115 820,105 845,115 870,105 940,200 875,185 820,90" fill="#c8edf2" opacity="0.85"/>
+  </svg>
+
+  <svg id="layer-near" class="mt-layer" viewBox="0 0 1440 500" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+    <!-- MAIN BIG MOUNTAIN (right side) - this is the climb mountain -->
+    <polygon points="650,500 650,370 720,280 780,200 840,110 900,50 960,110 1010,200 1060,280 1120,370 1180,500" fill="#1e6e82"/>
+    <!-- main mountain shadow face -->
+    <polygon points="840,110 900,50 960,110 910,180 870,160 840,110" fill="#155e70" opacity="0.7"/>
+    <!-- main snow cap -->
+    <polygon points="840,110 862,80 900,50 938,80 960,110 938,105 920,90 900,68 880,90 862,105 840,110" fill="#dff3f8"/>
+    <polygon points="862,80 900,50 938,80 920,90 900,68 880,90 862,80" fill="#eef9fc"/>
+
+    <!-- left mountain -->
+    <polygon points="0,500 0,350 80,260 150,180 220,100 270,50 320,100 370,180 420,260 500,350 560,500" fill="#1e7a90"/>
+    <polygon points="220,100 270,50 320,100 300,130 270,115 220,100" fill="#155e70" opacity="0.6"/>
+    <polygon points="220,100 248,72 270,50 292,72 320,100 300,130 270,115 248,130 220,100" fill="#dff3f8"/>
+    <polygon points="248,72 270,50 292,72 280,82 270,64 260,82 248,72" fill="#eef9fc"/>
+
+    <!-- ground/ice base -->
+    <ellipse cx="720" cy="490" rx="400" ry="40" fill="#a8dfe8" opacity="0.5"/>
+  </svg>
+
+  <!-- Ground strip -->
+  <svg id="layer-ground" class="mt-layer" viewBox="0 0 1440 120" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="60" width="1440" height="60" fill="#c8edf2"/>
+    <ellipse cx="720" cy="62" rx="900" ry="22" fill="#dff3f8"/>
+  </svg>
+
+  <!-- SNOW CANVAS -->
+  <canvas id="snow-canvas"></canvas>
+
+  <!-- GAME CANVAS (path + climber + flags) -->
+  <canvas id="game-canvas"></canvas>
+
+  <!-- UI -->
+  <div id="ui">
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div id="hud-text">Q <span id="q-num">1</span>/10 &nbsp;|&nbsp; Score: <span id="score-num">0</span></div>
+      <div id="prog-bar"><div id="prog-fill"></div></div>
     </div>
 
-    <div id="screen-rules">
-      <h2>Game Rules</h2>
-      <ul class="rules-list">
-        <li>You're a climber trying to reach the summit.</li>
-        <li>You'll face 10 questions along the way.</li>
-        <li>You get 2 chances to answer each question.</li>
-        <li>Correct answers help you climb higher.</li>
-        <li>Wrong answers slide you back down!</li>
-      </ul>
-      <p style="font-size:13px; color:#888;">Your goal is to reach the summit by answering 10 questions.</p>
-      <div class="btn-row"><button class="btn btn-orange" onclick="startGame()">BEGIN CLIMB</button></div>
-    </div>
-
-    <div id="screen-question">
-      <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
-      <div class="q-label">Question <span id="q-num">1</span> of 10</div>
-      <h2 id="q-text"></h2>
-      <div class="options" id="options-wrap"></div>
-      <div class="btn-row">
-        <button class="btn btn-orange" id="btn-submit" onclick="submitAnswer()">SUBMIT</button>
-        <button class="btn btn-muted" id="btn-continue" onclick="nextQuestion()" style="display:none">CONTINUE</button>
+    <!-- START SCREEN -->
+    <div id="start-screen" class="screen">
+      <div id="start-bottom">
+        <h1>Welcome to the Mountain Quest</h1>
+        <p>Select "START" to begin.</p>
+        <button class="pill-btn" onclick="showRules()">START</button>
       </div>
     </div>
 
-    <div id="screen-result">
-      <div class="feedback-msg" id="feedback-msg"></div>
-      <p id="result-explanation"></p>
+    <!-- RULES SCREEN -->
+    <div id="rules-screen" class="screen hidden">
+      <div id="rules-card">
+      <h2>Game Rules</h2>
+      <div class="rule-item"><div class="rule-arrow">›</div><div class="rule-text">You're a climber trying to reach the summit.</div></div>
+      <div class="rule-item"><div class="rule-arrow">›</div><div class="rule-text">You'll face 10 questions along the way.</div></div>
+      <div class="rule-item"><div class="rule-arrow">›</div><div class="rule-text">You get 2 chances to answer each question.</div></div>
+      <div class="rule-item"><div class="rule-arrow">›</div><div class="rule-text">Correct answers help you climb higher.</div></div>
+      <div class="rule-item"><div class="rule-arrow">›</div><div class="rule-text">Wrong answers slow you down - so choose carefully!</div></div>
+      <div style="margin-top:18px;background:rgba(13,51,64,0.85);color:#fff;font-size:13px;font-weight:600;padding:9px 18px;border-radius:6px;display:inline-block;">Your goal is to reach the summit by answering 10 questions.</div>
+      <div style="margin-top:18px;"><button class="pill-btn" onclick="startGame()">BEGIN CLIMB</button></div>
+      </div>
     </div>
 
-    <div id="screen-end">
-      <h1 id="end-title">Congratulations, Climber!</h1>
-      <p id="end-msg"></p>
-      <div class="btn-row"><button class="btn btn-orange" onclick="resetGame()">PLAY AGAIN</button></div>
+    <!-- QUIZ SCREEN -->
+    <div id="quiz-screen" class="screen hidden">
+      <div id="quiz-card">
+      <div id="q-label">Question 1</div>
+      <div id="q-text"></div>
+      <div id="q-hint">Select the correct option and then "SUBMIT".</div>
+      <div id="opts-container"></div>
+      <div id="btn-row">
+        <button class="action-btn submit" id="submit-btn" onclick="submitAnswer()" disabled>SUBMIT</button>
+        <button class="action-btn cont" id="cont-btn" onclick="nextQuestion()" disabled>CONTINUE</button>
+      </div>
+      </div>
     </div>
+
+    <!-- END SCREEN -->
+    <div id="end-screen" class="screen hidden">
+      <div id="end-bottom">
+        <h1 id="end-title">Congratulations, Climber!<br>You reached the summit!</h1>
+        <p id="end-sub">Select "EXIT" to end the game.</p>
+        <button class="pill-btn orange" onclick="resetGame()">PLAY AGAIN</button>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast"></div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
+// ── QUESTIONS from screenshots ─────────────────────────────────────────────
 const QUESTIONS = [
-  { q: "Which of the following is essential for safe mountain climbing?", opts: ["Sunglasses","Flip-flops","Climbing harness","Oxygen cylinder"], ans: 2, exp: "A climbing harness is essential safety gear that secures you to the rope and protects against falls." },
-  { q: "What is the primary reason mountaineers use oxygen tanks at high altitudes?", opts: ["To stay warm","To improve vision","To avoid falling","To breathe in thin air"], ans: 3, exp: "At high altitudes the air is thin, so oxygen tanks help climbers breathe and function properly." },
-  { q: "Avalanches can occur even when there is no recent snowfall.", opts: ["True","False"], ans: 0, exp: "True — old compacted snow can destabilize due to temperature changes, wind, or vibrations." },
-  { q: "What should a climber do if a sudden storm approaches?", opts: ["Climb faster to reach the top","Shout for help continuously","Take shelter and wait for it to pass","Sit down in the open and wait"], ans: 2, exp: "Taking shelter protects you from lightning, wind, and hypothermia until the storm passes." },
-  { q: "Which of the following items helps a climber secure themselves to the mountain?", opts: ["Trekking poles","Sleeping bag","Carabiner","Water bottle"], ans: 2, exp: "A carabiner is a metal clip used to connect ropes and harnesses, securing climbers to anchor points." },
-  { q: "When is the safest time of day to begin a mountain climb?", opts: ["Midday","Late afternoon","Early morning","After sunset"], ans: 2, exp: "Early morning offers stable weather, firm snow, and enough daylight to complete and descend safely." },
-  { q: "What tool is commonly used by climbers to gain traction on icy surfaces?", opts: ["Helmet","Snowboard","Crampons","Tent stakes"], ans: 2, exp: "Crampons are metal spikes attached to boots that grip ice and hard snow to prevent slipping." },
-  { q: "What is a common symptom of altitude sickness?", opts: ["Increased hunger","Vomiting","Sneezing","Headache"], ans: 3, exp: "Headache is one of the earliest and most common symptoms of altitude sickness (AMS)." },
-  { q: "What device is most reliable for emergency communication in remote mountain areas?", opts: ["Smartphone","Satellite phone","Walkie-talkie","Compass"], ans: 1, exp: "Satellite phones work without cellular towers, making them the most reliable in remote mountains." },
-  { q: "Why do climbers often form teams during mountain expeditions?", opts: ["To carry more snacks","For safety and support","To compete against each other","To move faster"], ans: 1, exp: "Teams provide safety, share equipment, offer support in emergencies, and aid rescue if someone is hurt." }
-];
-
-let currentQ = 0, lives = 2, climberPos = 0, selectedOpt = -1, submitCount = 0, gameOver = false;
-
-// Snowflakes
-const sfContainer = document.getElementById('snowflakes');
-for(let i=0; i<30; i++) {
-  const sf = document.createElement('div');
-  sf.className = 'sf';
-  sf.style.left = Math.random()*100 + '%';
-  sf.style.animationDuration = (3+Math.random()*6)+'s';
-  sf.style.animationDelay = (-Math.random()*8)+'s';
-  sf.style.width = sf.style.height = (2+Math.random()*4)+'px';
-  sfContainer.appendChild(sf);
-}
-
-// THREE.JS SCENE
-const canvas = document.getElementById('three-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setSize(canvas.clientWidth || 700, 420);
-renderer.shadowMap.enabled = true;
-renderer.setClearColor(0x000000, 0);
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x87cedc);
-scene.fog = new THREE.Fog(0xaad8e8, 20, 80);
-
-const camera = new THREE.PerspectiveCamera(45, (canvas.clientWidth||700)/420, 0.1, 200);
-camera.position.set(0, 8, 22);
-camera.lookAt(0, 2, 0);
-
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-scene.add(ambientLight);
-const dirLight = new THREE.DirectionalLight(0xfff0e0, 1.2);
-dirLight.position.set(10, 20, 10);
-dirLight.castShadow = true;
-scene.add(dirLight);
-
-// Ground plane
-const groundGeo = new THREE.PlaneGeometry(60, 60);
-const groundMat = new THREE.MeshLambertMaterial({ color: 0x8dd0e8 });
-const ground = new THREE.Mesh(groundGeo, groundMat);
-ground.rotation.x = -Math.PI/2;
-ground.position.y = -2;
-scene.add(ground);
-
-// Build a stylized low-poly mountain from geometry
-function makeMountain(x, z, scale, baseColor, tipColor) {
-  const group = new THREE.Group();
-  const peakH = 10 * scale;
-  const baseW = 7 * scale;
-
-  const verts = new Float32Array([
-    0, peakH, 0,
-    -baseW, 0, baseW*0.6,
-    baseW, 0, baseW*0.6,
-    0, 0, -baseW*0.8,
-    -baseW*0.5, 0, -baseW*0.2,
-    baseW*0.5, 0, -baseW*0.2,
-    -baseW*0.8, 0, baseW*0.3,
-    baseW*0.8, 0, baseW*0.3,
-  ]);
-
-  const indices = [
-    0,1,2, 0,6,1, 0,4,6, 0,3,4, 0,5,3, 0,7,5, 0,2,7,
-    1,6,4, 1,4,3, 1,3,2, 2,3,5, 2,5,7, 7,6,1
-  ];
-
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(verts, 3));
-  geo.setIndex(indices);
-  geo.computeVertexNormals();
-
-  const mat = new THREE.MeshLambertMaterial({ color: baseColor, flatShading: true });
-  const mesh = new THREE.Mesh(geo, mat);
-  mesh.castShadow = true;
-  group.add(mesh);
-
-  // Snow cap
-  const capGeo = new THREE.ConeGeometry(baseW*0.25, peakH*0.28, 5);
-  const capMat = new THREE.MeshLambertMaterial({ color: 0xe8f4f8, flatShading: true });
-  const cap = new THREE.Mesh(capGeo, capMat);
-  cap.position.y = peakH * 0.88;
-  group.add(cap);
-
-  group.position.set(x, -2, z);
-  return group;
-}
-
-const mountains = [
-  makeMountain(0, -4, 1.0, 0x5babc4, 0xd4eef7),
-  makeMountain(-9, -1, 0.7, 0x4a9bb5, 0xc8e8f4),
-  makeMountain(10, -2, 0.65, 0x4a9bb5, 0xc8e8f4),
-  makeMountain(-17, 0, 0.5, 0x6ab8cc, 0xd8f0f8),
-  makeMountain(18, 1, 0.45, 0x6ab8cc, 0xd8f0f8),
-];
-mountains.forEach(m => scene.add(m));
-
-// Checkpoint dots on main mountain path
-const checkpoints = [];
-const pathPoints = [
-  new THREE.Vector3(-0.5, -1.5, 4.5),
-  new THREE.Vector3(0.3, -0.5, 3.5),
-  new THREE.Vector3(-0.4, 0.5, 2.8),
-  new THREE.Vector3(0.5, 1.5, 2.0),
-  new THREE.Vector3(-0.3, 2.5, 1.2),
-  new THREE.Vector3(0.4, 3.5, 0.4),
-  new THREE.Vector3(-0.2, 4.5, -0.3),
-  new THREE.Vector3(0.3, 5.5, -0.9),
-  new THREE.Vector3(-0.1, 6.5, -1.4),
-  new THREE.Vector3(0.0, 7.7, -1.9),
-  new THREE.Vector3(0.0, 8.8, -2.2),
-];
-
-const dotMat = new THREE.MeshLambertMaterial({ color: 0xe55a1c });
-pathPoints.forEach((pt, i) => {
-  const dot = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), dotMat);
-  dot.position.copy(pt);
-  scene.add(dot);
-  checkpoints.push(dot);
-  if(i < pathPoints.length-1) {
-    const next = pathPoints[i+1];
-    const dir = new THREE.Vector3().subVectors(next, pt);
-    const len = dir.length();
-    const mid = new THREE.Vector3().addVectors(pt, next).multiplyScalar(0.5);
-    const cyl = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.025, 0.025, len, 4),
-      new THREE.MeshLambertMaterial({ color: 0x0d3b4f })
-    );
-    cyl.position.copy(mid);
-    const up = new THREE.Vector3(0,1,0);
-    const axis = new THREE.Vector3().crossVectors(up, dir.normalize());
-    const angle = Math.acos(up.dot(dir.normalize()));
-    if(axis.length() > 0.001) cyl.quaternion.setFromAxisAngle(axis.normalize(), angle);
-    scene.add(cyl);
+  {
+    q: "Which of the following is essential for safe mountain climbing?",
+    opts: ["Sunglasses","Flip-flops","Climbing harness","Oxygen cylinder"],
+    ans: 2
+  },
+  {
+    q: "What is the primary reason mountaineers use oxygen tanks at high altitudes?",
+    opts: ["To stay warm","To improve vision","To avoid falling","To breathe in thin air"],
+    ans: 3
+  },
+  {
+    q: "Avalanches can occur even when there is no recent snowfall.",
+    opts: ["True","False"],
+    ans: 0
+  },
+  {
+    q: "What should a climber do if a sudden storm approaches?",
+    opts: ["Climb faster to reach the top","Shout for help continuously","Take shelter and wait for it to pass","Sit down in the open and wait"],
+    ans: 2
+  },
+  {
+    q: "Which of the following items helps a climber secure themselves to the mountain?",
+    opts: ["Trekking poles","Sleeping bag","Carabiner","Water bottle"],
+    ans: 2
+  },
+  {
+    q: "When is the safest time of day to begin a mountain climb?",
+    opts: ["Midday","Late afternoon","Early morning","After sunset"],
+    ans: 2
+  },
+  {
+    q: "What tool is commonly used by climbers to gain traction on icy surfaces?",
+    opts: ["Helmet","Snowboard","Crampons","Tent stakes"],
+    ans: 2
+  },
+  {
+    q: "What is a common symptom of altitude sickness?",
+    opts: ["Increased hunger","Vomiting","Sneezing","Headache"],
+    ans: 3
+  },
+  {
+    q: "What device is most reliable for emergency communication in remote mountain areas?",
+    opts: ["Smartphone","Satellite phone","Walkie-talkie","Compass"],
+    ans: 1
+  },
+  {
+    q: "Why do climbers often form teams during mountain expeditions?",
+    opts: ["To carry more snacks","For safety and support","To compete against each other","To move faster"],
+    ans: 1
   }
-});
+];
 
-// Climber mesh (simple capsule from sphere+cylinder)
-const climberGroup = new THREE.Group();
-const bodyMat = new THREE.MeshLambertMaterial({ color: 0xe55a1c });
-const headMat = new THREE.MeshLambertMaterial({ color: 0xf9d97a });
-const body = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.5, 8), bodyMat);
-const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), headMat);
-head.position.y = 0.45;
-const pack = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.3, 0.12), new THREE.MeshLambertMaterial({color:0x2255aa}));
-pack.position.set(-0.02, 0.1, -0.18);
-climberGroup.add(body, head, pack);
-scene.add(climberGroup);
-climberGroup.position.copy(pathPoints[0]);
-climberGroup.position.y += 0.5;
+// ── STATE ─────────────────────────────────────────────────────────────────
+let qIndex = 0, score = 0, selected = -1, attemptsLeft = 2;
+let climberT = 0, targetT = 0;
+let gameStarted = false;
 
-// Summit flag
-const flagGroup = new THREE.Group();
-const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,1.2,4), new THREE.MeshLambertMaterial({color:0x333}));
-pole.position.y = 0.6;
-const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.5, 0.3), new THREE.MeshLambertMaterial({color:0xe55a1c, side:THREE.DoubleSide}));
-flag.position.set(0.28, 1.1, 0);
-flagGroup.add(pole, flag);
-const summitPt = pathPoints[pathPoints.length-1];
-flagGroup.position.set(summitPt.x, summitPt.y+0.3, summitPt.z);
-flagGroup.visible = false;
-scene.add(flagGroup);
+// ── PATH POINTS (right mountain face) ─────────────────────────────────────
+// Points run up the right-side big mountain; expressed as fractions of screen
+const RAW_PATH = [
+  [0.48,0.97],[0.50,0.91],[0.52,0.84],[0.54,0.77],[0.56,0.70],
+  [0.575,0.62],[0.59,0.54],[0.605,0.46],[0.617,0.38],[0.625,0.30],[0.630,0.22]
+];
 
-// Animation
-let animFrame;
-let bobT = 0;
-function animate() {
-  animFrame = requestAnimationFrame(animate);
-  bobT += 0.02;
-  climberGroup.position.y = climberGroup.userData.targetY + Math.sin(bobT)*0.06;
-  flagGroup.rotation.y = Math.sin(bobT*0.7)*0.3;
-  renderer.render(scene, camera);
-}
-animate();
-
-// Move climber to checkpoint index
-function moveClimber(idx, cb) {
-  const target = pathPoints[Math.min(idx, pathPoints.length-1)];
-  climberGroup.userData.targetY = target.y + 0.5;
-  const start = climberGroup.position.clone();
-  const end = new THREE.Vector3(target.x, target.y+0.5, target.z);
-  let t = 0;
-  const step = () => {
-    t += 0.04;
-    if(t >= 1) { climberGroup.position.copy(end); if(cb) cb(); return; }
-    climberGroup.position.lerpVectors(start, end, t);
-    requestAnimationFrame(step);
+function pathPoint(t) {
+  const idx = t * (RAW_PATH.length - 1);
+  const i = Math.min(Math.floor(idx), RAW_PATH.length - 2);
+  const f = idx - i;
+  const W = window.innerWidth, H = window.innerHeight;
+  return {
+    x: (RAW_PATH[i][0] + (RAW_PATH[i+1][0]-RAW_PATH[i][0])*f) * W,
+    y: (RAW_PATH[i][1] + (RAW_PATH[i+1][1]-RAW_PATH[i][1])*f) * H
   };
-  step();
 }
 
-// Shake/fall animation
-function shakeClimber() {
-  let t = 0;
-  const orig = climberGroup.position.clone();
-  const shake = () => {
-    t++;
-    climberGroup.position.x = orig.x + Math.sin(t*1.8)*0.3*(1-t/20);
-    if(t < 20) requestAnimationFrame(shake);
-    else climberGroup.position.copy(orig);
-  };
-  shake();
+// ── AUDIO (Web Audio API) ─────────────────────────────────────────────────
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, type, dur, vol=0.18, delay=0) {
+  const o = AC.createOscillator();
+  const g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, AC.currentTime + delay);
+  g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + delay + dur);
+  o.start(AC.currentTime + delay);
+  o.stop(AC.currentTime + delay + dur + 0.05);
 }
 
-// GAME LOGIC
+function soundCorrect() {
+  playTone(523,  'sine', 0.12, 0.2);
+  playTone(659,  'sine', 0.12, 0.2, 0.12);
+  playTone(784,  'sine', 0.18, 0.2, 0.24);
+}
+
+function soundWrong() {
+  playTone(300, 'sawtooth', 0.12, 0.15);
+  playTone(220, 'sawtooth', 0.18, 0.15, 0.13);
+}
+
+function soundSummit() {
+  const notes = [523,587,659,698,784,880,988,1047];
+  notes.forEach((f,i) => playTone(f,'sine',0.25,0.18,i*0.08));
+  // clap noise bursts
+  for(let i=0;i<6;i++){
+    const buf = AC.createBuffer(1,AC.sampleRate*0.05,AC.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let j=0;j<d.length;j++) d[j]=(Math.random()*2-1)*Math.exp(-j/800);
+    const src = AC.createBufferSource();
+    const g = AC.createGain();
+    src.buffer = buf;
+    src.connect(g); g.connect(AC.destination);
+    g.gain.value = 0.35;
+    src.start(AC.currentTime + 0.7 + i*0.15);
+  }
+}
+
+// Wind: gentle swinging gust using LFO-modulated gain
+let windNode = null;
+function startWind() {
+  if(windNode) return;
+  const bufLen = AC.sampleRate * 4;
+  const buf = AC.createBuffer(1, bufLen, AC.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<bufLen;i++) d[i] = Math.random()*2-1;
+
+  windNode = AC.createBufferSource();
+  windNode.buffer = buf; windNode.loop = true;
+
+  // bandpass to shape wind tone
+  const bp1 = AC.createBiquadFilter();
+  bp1.type='bandpass'; bp1.frequency.value=320; bp1.Q.value=0.7;
+  const bp2 = AC.createBiquadFilter();
+  bp2.type='bandpass'; bp2.frequency.value=800; bp2.Q.value=1.2;
+
+  // master gain
+  const masterGain = AC.createGain();
+  masterGain.gain.value = 0.055;
+
+  // LFO for swinging gust effect
+  const lfo = AC.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 0.18; // slow swing ~5.5s cycle
+  const lfoGain = AC.createGain();
+  lfoGain.gain.value = 0.04;
+  lfo.connect(lfoGain);
+  lfoGain.connect(masterGain.gain);
+
+  // second LFO slightly detuned for natural variation
+  const lfo2 = AC.createOscillator();
+  lfo2.type = 'sine';
+  lfo2.frequency.value = 0.27;
+  const lfoGain2 = AC.createGain();
+  lfoGain2.gain.value = 0.02;
+  lfo2.connect(lfoGain2);
+  lfoGain2.connect(masterGain.gain);
+
+  windNode.connect(bp1); windNode.connect(bp2);
+  bp1.connect(masterGain); bp2.connect(masterGain);
+  masterGain.connect(AC.destination);
+
+  windNode.start();
+  lfo.start(); lfo2.start();
+}
+
+// ── SNOW ─────────────────────────────────────────────────────────────────
+const snowCanvas = document.getElementById('snow-canvas');
+const sCtx = snowCanvas.getContext('2d');
+let snowflakes = [];
+
+function resizeSnow() {
+  snowCanvas.width = window.innerWidth;
+  snowCanvas.height = window.innerHeight;
+}
+
+function initSnow() {
+  snowflakes = [];
+  for(let i=0;i<130;i++) snowflakes.push({
+    x: Math.random()*window.innerWidth,
+    y: Math.random()*window.innerHeight,
+    r: 1.5+Math.random()*3,
+    vx: -0.4+Math.random()*0.8,
+    vy: 0.5+Math.random()*1.2,
+    o: 0.5+Math.random()*0.5
+  });
+}
+
+function drawSnow() {
+  sCtx.clearRect(0,0,snowCanvas.width,snowCanvas.height);
+  snowflakes.forEach(s => {
+    sCtx.beginPath();
+    sCtx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    sCtx.fillStyle = `rgba(255,255,255,${s.o})`;
+    sCtx.fill();
+    s.x += s.vx + Math.sin(Date.now()*0.001+s.y)*0.3;
+    s.y += s.vy;
+    if(s.y > window.innerHeight+5){ s.y=-5; s.x=Math.random()*window.innerWidth; }
+    if(s.x < -5) s.x = window.innerWidth+5;
+    if(s.x > window.innerWidth+5) s.x=-5;
+  });
+}
+
+// ── GAME CANVAS (path + flags + climber) ─────────────────────────────────
+const gc = document.getElementById('game-canvas');
+const gCtx = gc.getContext('2d');
+
+function resizeGame() { gc.width=window.innerWidth; gc.height=window.innerHeight; }
+
+function drawGame() {
+  gCtx.clearRect(0,0,gc.width,gc.height);
+  if(!gameStarted) return;
+
+  const W = window.innerWidth, H = window.innerHeight;
+
+  // Draw dotted path
+  gCtx.save();
+  gCtx.setLineDash([6,7]);
+  gCtx.strokeStyle = 'rgba(13,51,64,0.6)';
+  gCtx.lineWidth = 2;
+  gCtx.beginPath();
+  RAW_PATH.forEach((p,i) => {
+    const x = p[0]*W, y = p[1]*H;
+    i===0 ? gCtx.moveTo(x,y) : gCtx.lineTo(x,y);
+  });
+  gCtx.stroke();
+  gCtx.restore();
+
+  // Checkpoint dots & flags
+  for(let i=0;i<QUESTIONS.length;i++){
+    const t = i/(QUESTIONS.length-1);
+    const p = pathPoint(t);
+    // dot
+    gCtx.beginPath();
+    gCtx.arc(p.x, p.y, 6, 0, Math.PI*2);
+    gCtx.fillStyle = i/QUESTIONS.length <= targetT ? '#e8622a' : 'rgba(13,51,64,0.5)';
+    gCtx.fill();
+    gCtx.strokeStyle='#fff'; gCtx.lineWidth=1.5; gCtx.stroke();
+
+    // flag after passed
+    if(i < qIndex && i > 0){
+      drawFlag(p.x, p.y);
+    }
+  }
+
+  // Climber
+  const cp = pathPoint(Math.max(0,Math.min(1,climberT)));
+  drawClimber(gCtx, cp.x, cp.y, H);
+}
+
+function drawFlag(x,y){
+  gCtx.save();
+  // pole
+  gCtx.strokeStyle='rgba(13,51,64,0.9)'; gCtx.lineWidth=2;
+  gCtx.beginPath(); gCtx.moveTo(x,y); gCtx.lineTo(x,y-22); gCtx.stroke();
+  // flag
+  gCtx.fillStyle='#e8622a';
+  gCtx.beginPath();
+  gCtx.moveTo(x,y-22); gCtx.lineTo(x+14,y-17); gCtx.lineTo(x,y-12);
+  gCtx.fill();
+  gCtx.restore();
+}
+
+function drawClimber(ctx, x, y, H){
+  const scale = Math.max(0.6, Math.min(1.0, 1.0 - (1-(y/H))*0.4));
+  const s = scale * 28;
+  ctx.save();
+  ctx.translate(x, y);
+
+  // shadow
+  ctx.beginPath();
+  ctx.ellipse(0, 2, s*0.5, s*0.1, 0, 0, Math.PI*2);
+  ctx.fillStyle='rgba(0,0,0,0.15)'; ctx.fill();
+
+  // boots
+  ctx.fillStyle='#2a1a0a';
+  ctx.fillRect(-s*0.32, -s*0.15, s*0.22, s*0.18);
+  ctx.fillRect( s*0.1,  -s*0.15, s*0.22, s*0.18);
+
+  // legs/pants - orange
+  ctx.fillStyle='#d45a20';
+  ctx.fillRect(-s*0.28, -s*0.6, s*0.22, s*0.5);
+  ctx.fillRect( s*0.06,  -s*0.6, s*0.22, s*0.5);
+
+  // body/jacket - dark blue
+  ctx.fillStyle='#1a2a5a';
+  ctx.beginPath();
+  ctx.roundRect(-s*0.32,-s*1.1,s*0.64,s*0.56,s*0.08);
+  ctx.fill();
+
+  // backpack
+  ctx.fillStyle='#c84a18';
+  ctx.fillRect(s*0.18,-s*1.05,s*0.2,s*0.38);
+
+  // head
+  ctx.fillStyle='#e8c090';
+  ctx.beginPath(); ctx.arc(0,-s*1.22,s*0.22,0,Math.PI*2); ctx.fill();
+
+  // helmet
+  ctx.fillStyle='#c84a18';
+  ctx.beginPath();
+  ctx.ellipse(0,-s*1.38,s*0.26,s*0.16,0,Math.PI,0);
+  ctx.fill();
+
+  // goggles
+  ctx.fillStyle='rgba(255,255,255,0.6)';
+  ctx.beginPath(); ctx.ellipse(-s*0.1,-s*1.22,s*0.09,s*0.06,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( s*0.1,-s*1.22,s*0.09,s*0.06,0,0,Math.PI*2); ctx.fill();
+
+  // arms with ice axe
+  ctx.strokeStyle='#1a2a5a'; ctx.lineWidth=s*0.18; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(-s*0.3,-s*0.95); ctx.lineTo(-s*0.55,-s*0.55); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo( s*0.3,-s*0.95); ctx.lineTo( s*0.5, -s*1.3); ctx.stroke();
+
+  // ice axe
+  ctx.strokeStyle='#888'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(s*0.5,-s*1.3); ctx.lineTo(s*0.5,-s*1.65); ctx.stroke();
+  ctx.fillStyle='#aaa';
+  ctx.fillRect(s*0.35,-s*1.68,s*0.3,s*0.08);
+
+  ctx.restore();
+}
+
+// ── PARALLAX on mousemove ─────────────────────────────────────────────────
+let mouseX = 0.5;
+document.addEventListener('mousemove', e => { mouseX = e.clientX / window.innerWidth; });
+
+function updateParallax() {
+  const dx = (mouseX - 0.5);
+  document.getElementById('layer-far').style.transform  = `translateX(${dx*18}px)`;
+  document.getElementById('layer-mid').style.transform  = `translateX(${dx*32}px)`;
+  document.getElementById('layer-near').style.transform = `translateX(${dx*52}px)`;
+}
+
+// ── ANIMATION LOOP ────────────────────────────────────────────────────────
+function loop() {
+  requestAnimationFrame(loop);
+  drawSnow();
+  // smooth climber
+  climberT += (targetT - climberT) * 0.035;
+  drawGame();
+  updateParallax();
+}
+
+// ── GAME FLOW ─────────────────────────────────────────────────────────────
 function showRules() {
-  setScreen('rules');
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('rules-screen').classList.remove('hidden');
+  startWind();
 }
 
 function startGame() {
-  currentQ = 0; lives = 2; climberPos = 0; gameOver = false;
-  document.getElementById('hud').style.display = 'block';
-  moveClimber(0);
+  qIndex=0; score=0; climberT=0; targetT=0; gameStarted=true;
+  document.getElementById('rules-screen').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
   showQuestion();
 }
 
 function showQuestion() {
-  if(currentQ >= QUESTIONS.length) { endGame(true); return; }
-  submitCount = 0; selectedOpt = -1;
-  const q = QUESTIONS[currentQ];
-  document.getElementById('q-num').textContent = currentQ+1;
-  document.getElementById('progress-bar').style.width = (currentQ/10*100)+'%';
-  document.getElementById('q-text').textContent = q.q;
-  document.getElementById('hud-q').textContent = currentQ+1;
-  document.getElementById('hud-lives').textContent = lives;
+  if(qIndex >= QUESTIONS.length){ endGame(); return; }
+  const q = QUESTIONS[qIndex];
+  attemptsLeft = 2;
+  selected = -1;
 
-  const wrap = document.getElementById('options-wrap');
-  wrap.innerHTML = '';
+  document.getElementById('q-label').textContent = `Question ${qIndex+1}`;
+  document.getElementById('q-text').textContent = q.q;
+  document.getElementById('q-num').textContent = qIndex+1;
+  document.getElementById('score-num').textContent = score;
+
+  const cont = document.getElementById('cont-btn');
+  cont.disabled = true; cont.classList.remove('active');
+  document.getElementById('submit-btn').disabled = true;
+
+  const container = document.getElementById('opts-container');
+  container.innerHTML = '';
   q.opts.forEach((opt, i) => {
-    const lbl = document.createElement('label');
-    lbl.innerHTML = `<input type="radio" name="opt" value="${i}"> ${opt}`;
-    lbl.querySelector('input').addEventListener('change', () => { selectedOpt = i; });
-    wrap.appendChild(lbl);
+    const row = document.createElement('div');
+    row.className = 'opt-row';
+    row.innerHTML = `<div class="opt-radio" id="radio-${i}"></div><div class="opt-label">${opt}</div>`;
+    row.onclick = () => selectOpt(i);
+    container.appendChild(row);
   });
 
-  document.getElementById('btn-submit').style.display = 'inline-block';
-  document.getElementById('btn-submit').className = 'btn btn-orange';
-  document.getElementById('btn-continue').style.display = 'none';
-  setScreen('question');
+  document.getElementById('quiz-screen').classList.remove('hidden');
+  targetT = qIndex / QUESTIONS.length;
+  updateHUD();
+}
+
+function selectOpt(i) {
+  if(document.getElementById('submit-btn').disabled === false && selected === i) return;
+  // check if already answered (radios locked)
+  const radios = document.querySelectorAll('.opt-radio');
+  if([...radios].some(r => r.classList.contains('correct-radio'))) return;
+
+  selected = i;
+  radios.forEach((r,j) => {
+    r.classList.toggle('selected', j===i);
+  });
+  document.getElementById('submit-btn').disabled = false;
 }
 
 function submitAnswer() {
-  if(selectedOpt < 0) return;
-  const q = QUESTIONS[currentQ];
-  submitCount++;
-  const correct = selectedOpt === q.ans;
-  const fbMsg = document.getElementById('feedback-msg');
-  const expEl = document.getElementById('result-explanation');
+  if(selected < 0) return;
+  const q = QUESTIONS[qIndex];
+  const radios = document.querySelectorAll('.opt-radio');
+  const submitBtn = document.getElementById('submit-btn');
+  const contBtn = document.getElementById('cont-btn');
 
-  if(correct) {
-    fbMsg.className = 'feedback-msg feedback-correct';
-    fbMsg.textContent = '✓ Correct! You climb higher!';
-    expEl.textContent = q.exp;
-    climberPos = currentQ + 1;
-    moveClimber(climberPos);
-    document.getElementById('btn-submit').style.display = 'none';
-    document.getElementById('btn-continue').style.display = 'inline-block';
-    document.getElementById('btn-continue').className = 'btn btn-orange';
-    // Insert feedback above
-    document.getElementById('options-wrap').insertAdjacentElement('beforebegin', fbMsg);
-    fbMsg.style.display = 'inline-block';
-    expEl.style.display = 'block';
-    document.getElementById('options-wrap').style.display = 'none';
+  if(selected === q.ans){
+    // CORRECT
+    radios[selected].className = 'opt-radio correct-radio';
+    score++;
+    targetT = (qIndex+1) / QUESTIONS.length;
+    submitBtn.disabled = true;
+    contBtn.disabled = false; contBtn.classList.add('active');
+    showToast('✓ Correct! Keep climbing!', true);
+    soundCorrect();
+    document.getElementById('score-num').textContent = score;
+    updateHUD();
   } else {
-    lives--;
-    shakeClimber();
-    if(lives <= 0 && submitCount >= 1) {
-      climberPos = Math.max(0, climberPos - 1);
-      moveClimber(climberPos);
-      fbMsg.className = 'feedback-msg feedback-wrong';
-      fbMsg.textContent = '✗ Wrong! You slide back.';
-      expEl.textContent = 'The correct answer was: ' + q.opts[q.ans] + '. ' + q.exp;
-      lives = 2;
-      document.getElementById('btn-submit').style.display = 'none';
-      document.getElementById('btn-continue').style.display = 'inline-block';
-      document.getElementById('btn-continue').className = 'btn btn-muted';
-      document.getElementById('options-wrap').insertAdjacentElement('beforebegin', fbMsg);
-      fbMsg.style.display = 'inline-block';
-      expEl.style.display = 'block';
-      document.getElementById('options-wrap').style.display = 'none';
+    // WRONG
+    radios[selected].className = 'opt-radio wrong-radio';
+    attemptsLeft--;
+    soundWrong();
+    if(attemptsLeft <= 0 || q.opts.length === 2){
+      // reveal correct, move on
+      radios[q.ans].className = 'opt-radio correct-radio';
+      // fall back a bit
+      targetT = Math.max(0, targetT - 0.04);
+      submitBtn.disabled = true;
+      contBtn.disabled = false; contBtn.classList.add('active');
+      showToast('✗ Wrong! You slipped back!', false);
     } else {
-      fbMsg.className = 'feedback-msg feedback-wrong';
-      fbMsg.textContent = '✗ Wrong! ' + (2-submitCount) + ' attempt left. Try again.';
-      document.getElementById('options-wrap').insertAdjacentElement('beforebegin', fbMsg);
-      fbMsg.style.display = 'inline-block';
+      showToast(`✗ Try again! ${attemptsLeft} attempt left.`, false);
+      selected = -1;
+      radios.forEach(r => r.classList.remove('selected'));
+      submitBtn.disabled = true;
     }
-    document.getElementById('hud-lives').textContent = lives;
+    updateHUD();
   }
 }
 
 function nextQuestion() {
-  currentQ++;
-  document.getElementById('feedback-msg').style.display = 'none';
-  const expEl = document.getElementById('result-explanation');
-  expEl.style.display = 'none';
-  document.getElementById('options-wrap').style.display = 'block';
-  if(currentQ >= QUESTIONS.length) { endGame(true); } else { showQuestion(); }
+  qIndex++;
+  document.getElementById('quiz-screen').classList.add('hidden');
+  setTimeout(showQuestion, 300);
 }
 
-function endGame(won) {
-  document.getElementById('hud').style.display = 'none';
-  if(won) {
-    flagGroup.visible = true;
-    moveClimber(pathPoints.length-1);
-    document.getElementById('end-title').textContent = 'Congratulations, Climber! You reached the summit!';
-    document.getElementById('end-msg').textContent = 'You answered all 10 questions and conquered the mountain!';
-  } else {
-    document.getElementById('end-title').textContent = 'The mountain wins this time...';
-    document.getElementById('end-msg').textContent = 'Better luck on your next climb!';
-  }
-  setScreen('end');
+function updateHUD() {
+  document.getElementById('prog-fill').style.width = (targetT*100).toFixed(0)+'%';
+}
+
+function endGame() {
+  document.getElementById('quiz-screen').classList.add('hidden');
+  document.getElementById('hud').classList.add('hidden');
+  targetT = 1.0;
+  setTimeout(() => {
+    soundSummit();
+    const title = document.getElementById('end-title');
+    const sub   = document.getElementById('end-sub');
+    if(score >= 8){
+      title.textContent = 'Congratulations, Climber! You reached the summit!';
+      sub.textContent = `Score: ${score}/10 — Outstanding! Select "PLAY AGAIN" to climb once more.`;
+    } else if(score >= 5){
+      title.textContent = 'Good effort! You made it high up!';
+      sub.textContent = `Score: ${score}/10 — So close! Try again to reach the summit.`;
+    } else {
+      title.textContent = 'Keep training, Climber!';
+      sub.textContent = `Score: ${score}/10 — Every mountain starts with a single step.`;
+    }
+    document.getElementById('end-screen').classList.remove('hidden');
+  }, 1200);
 }
 
 function resetGame() {
-  flagGroup.visible = false;
-  currentQ = 0; lives = 2; climberPos = 0;
-  moveClimber(0);
-  setScreen('start');
+  document.getElementById('end-screen').classList.add('hidden');
+  qIndex=0; score=0; climberT=0; targetT=0;
+  showQuestion();
+  document.getElementById('hud').classList.remove('hidden');
 }
 
-function setScreen(name) {
-  ['start','rules','question','result','end'].forEach(s => {
-    document.getElementById('screen-'+s).classList.remove('active');
-  });
-  document.getElementById('screen-'+name).classList.add('active');
+function showToast(msg, good) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + (good?'good':'bad');
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => { t.className=''; }, 1800);
 }
 
-window.addEventListener('resize', () => {
-  const w = canvas.parentElement.clientWidth || 700;
-  renderer.setSize(w, 420);
-  camera.aspect = w/420;
-  camera.updateProjectionMatrix();
-});
+// ── INIT ──────────────────────────────────────────────────────────────────
+function onResize() { resizeSnow(); resizeGame(); }
+window.addEventListener('resize', onResize);
+onResize();
+initSnow();
+loop();
+
+// unlock audio on first interaction
+document.addEventListener('click', () => { if(AC.state==='suspended') AC.resume(); }, {once:true});
 </script>
+</body>
+</html>
